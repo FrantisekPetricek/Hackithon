@@ -1,0 +1,7 @@
+[tool.pyright]
+include = ["flask-app"]
+executionEnvironments = [
+    {root = "flask-app"}
+]
+venvPath = "./"
+venv = "venv"
