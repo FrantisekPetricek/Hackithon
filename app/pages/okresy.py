@@ -43,17 +43,23 @@ def load_okresy_from_db():
 gdf = load_okresy_from_db()
 gdf_filtered = gdf[gdf["NUTS3_KOD"] == nuts_kod]
 
-# Mapa okresů
+# Spočítej bounding box vybraného kraje
+bounds = gdf_filtered.total_bounds  # [minx, miny, maxx, maxy]
+bbox_southwest = [bounds[1], bounds[0]]  # [miny, minx]
+bbox_northeast = [bounds[3], bounds[2]]  # [maxy, maxx]
+
+# Mapa přiblížená na vybraný kraj
 m = folium.Map(
-    location=[49.8, 15.5],
+    location=[(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2],
     zoom_start=8,
-    tiles=None,  # žádné pozadí
+    tiles=None,
     max_bounds=True,
     zoom_control=True,
     scrollWheelZoom=False,
     dragging=False
 )
-m.fit_bounds([[48.55, 12.09], [51.06, 18.86]])  # hranice ČR
+m.fit_bounds([bbox_southwest, bbox_northeast])
+
 
 
 # Všechny okresy (šedé pozadí)
