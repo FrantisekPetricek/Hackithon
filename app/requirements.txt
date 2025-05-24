@@ -1,0 +1,8 @@
+streamlit
+geopandas
+folium
+streamlit-folium
+shapely
+pyproj
+pandas
+mysql-connector-python
