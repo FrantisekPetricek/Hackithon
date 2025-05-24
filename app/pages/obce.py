@@ -16,19 +16,20 @@ if "okres_kod" not in st.session_state:
 okres_kod = st.session_state["okres_kod"]
 okres_nazev = st.session_state.get("okres_nazev", "Neznámý okres")
 
-# --- Načtení dat z DB ---
+# --- Načtení obcí z DB ---
 @st.cache_data(ttl=600)
-def load_obce_from_db():
+def load_obce_z_okresu(okres_kod):
     conn = mysql.connector.connect(
         host="mysql",
         user="root",
         password="root",
         database="geo_data"
     )
-    query = """
+    query = f"""
         SELECT nazev AS NAZEV, obec_kod AS KOD, okres_kod AS OKRES_KOD, 
                ST_AsText(geom) AS geometry_wkt  
-        FROM zsj
+        FROM obce
+        WHERE okres_kod = '{okres_kod}'
     """
     df = pd.read_sql(query, conn)
     conn.close()
@@ -41,8 +42,7 @@ def load_obce_from_db():
     gdf["geometry"] = gdf["geometry"].simplify(0.001, preserve_topology=True)
     return gdf
 
-gdf = load_obce_from_db()
-gdf_filtered = gdf[gdf["OKRES_KOD"] == okres_kod]
+gdf_filtered = load_obce_z_okresu(okres_kod)
 
 # --- Bounding box ---
 bounds = gdf_filtered.total_bounds
@@ -59,18 +59,6 @@ m = folium.Map(
     dragging=False
 )
 m.fit_bounds([bbox_southwest, bbox_northeast])
-
-# --- Všechny obce (šedě) ---
-folium.GeoJson(
-    gdf,
-    style_function=lambda x: {
-        "fillColor": "#eeeeee",
-        "color": "#aaaaaa",
-        "weight": 1,
-        "fillOpacity": 0.2,
-    },
-    tooltip=folium.GeoJsonTooltip(fields=["NAZEV"])
-).add_to(m)
 
 # --- Vybrané obce (oranžově) ---
 folium.GeoJson(
@@ -99,4 +87,3 @@ if st.button("⬅️ Zpět na okresy"):
     del st.session_state["okres_kod"]
     del st.session_state["okres_nazev"]
     st.switch_page("pages/okresy.py")
-
