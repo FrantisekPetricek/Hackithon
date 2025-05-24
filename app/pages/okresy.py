@@ -91,12 +91,11 @@ clicked = st_folium(m, width=1400, height=1000)
 
 if clicked and clicked.get("last_active_drawing"):
     props = clicked["last_active_drawing"]["properties"]
-    st.session_state["nuts3_kod"] = props["NUTS3_KOD"]
-    st.session_state["kraj_nazev"] = props["NAZEV"]
-    st.switch_page("pages/okresy.py")
-
+    st.session_state["okres_kod"] = props["KOD"]
+    st.session_state["okres_nazev"] = props["NAZEV"]
+    st.switch_page("pages/app3.py")
 # Tlačítko zpět
 if st.button("⬅️ Zpět na kraje"):
     del st.session_state["nuts3_kod"]
-    del st.session_state["kraj_nazev"]
+    del st.session_state["obec_nazev"]
     st.switch_page("app.py")

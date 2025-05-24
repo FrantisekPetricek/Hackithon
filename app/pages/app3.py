@@ -7,11 +7,18 @@ from streamlit_folium import st_folium
 import folium
 
 st.set_page_config(layout="wide")
-st.title("Interaktivní mapa obcí")
+st.title("Obce v okrese")
 
-# --- Cacheovaná funkce pro načtení krajů z MySQL ---
-@st.cache_data(ttl=600)  # data se uloží do cache na 10 minut
-def load_kraje_from_db():
+# Kontrola, že máme předaný okres_kod
+if "okres_kod" not in st.session_state:
+    st.switch_page("pages/okresy.py")
+
+okres_kod = st.session_state["okres_kod"]
+okres_nazev = st.session_state.get("okres_nazev", "Neznámý okres")
+
+# --- Načtení dat z DB ---
+@st.cache_data(ttl=600)
+def load_obce_from_db():
     conn = mysql.connector.connect(
         host="mysql",
         user="root",
@@ -19,14 +26,13 @@ def load_kraje_from_db():
         database="geo_data"
     )
     query = """
-        SELECT nazev AS NAZEV, obec_kod AS KOD, lau1_kod AS NUTS3_KOD, 
+        SELECT nazev AS NAZEV, obec_kod AS KOD, okres_kod AS OKRES_KOD, 
                ST_AsText(geom) AS geometry_wkt  
         FROM zsj
     """
     df = pd.read_sql(query, conn)
     conn.close()
 
-    # Převedeme WKT na geometrii
     gdf = gpd.GeoDataFrame(
         df,
         geometry=gpd.GeoSeries.from_wkt(df["geometry_wkt"]),
@@ -35,40 +41,38 @@ def load_kraje_from_db():
     gdf["geometry"] = gdf["geometry"].simplify(0.001, preserve_topology=True)
     return gdf
 
-# --- Načtení dat ---
-gdf = load_kraje_from_db()
+gdf = load_obce_from_db()
+gdf_filtered = gdf[gdf["OKRES_KOD"] == okres_kod]
 
-# --- Výběr kraje ---
-kraje = sorted(gdf["NAZEV"].unique())
-vybrany_kraj = st.selectbox("Vyber okres", kraje)
-gdf_filtered = gdf[gdf["NAZEV"] == vybrany_kraj]
+# --- Bounding box ---
+bounds = gdf_filtered.total_bounds
+bbox_southwest = [bounds[1], bounds[0]]
+bbox_northeast = [bounds[3], bounds[2]]
 
 # --- Vytvoření mapy ---
-center = [49.8, 15.5]
 m = folium.Map(
-    location=center,
-    zoom_start=8,
+    location=[(bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2],
+    zoom_start=10,
     tiles=None,
-    zoom_control=False,
+    zoom_control=True,
     scrollWheelZoom=False,
-    dragging=False,
-    doubleClickZoom=False,
-    touchZoom=False
+    dragging=False
 )
+m.fit_bounds([bbox_southwest, bbox_northeast])
 
-# Základní vrstvy
+# --- Všechny obce (šedě) ---
 folium.GeoJson(
     gdf,
     style_function=lambda x: {
-        "fillColor": "#FFFFFF",
-        "color": "#000000",
+        "fillColor": "#eeeeee",
+        "color": "#aaaaaa",
         "weight": 1,
-        "fillOpacity": 0.3,
+        "fillOpacity": 0.2,
     },
-    tooltip=folium.GeoJsonTooltip(fields=["NAZEV"], aliases=["okres:"])
+    tooltip=folium.GeoJsonTooltip(fields=["NAZEV"])
 ).add_to(m)
 
-# Zvýrazněný kraj
+# --- Vybrané obce (oranžově) ---
 folium.GeoJson(
     gdf_filtered,
     style_function=lambda x: {
@@ -77,13 +81,22 @@ folium.GeoJson(
         "weight": 2,
         "fillOpacity": 0.7,
     },
-    tooltip=folium.GeoJsonTooltip(fields=["NAZEV"], aliases=["Vybraný okres:"])
+    tooltip=folium.GeoJsonTooltip(fields=["NAZEV"])
 ).add_to(m)
 
-# Zobraz mapa
-st_folium(m, width=1400, height=1000)
+st.subheader(f"Obce v okrese: {okres_nazev}")
+clicked = st_folium(m, width=1400, height=1000)
 
-# --- Dodatečné info ---
-if not gdf_filtered.empty:
-    nuts_kod = gdf_filtered["NUTS3_KOD"].iloc[0]
-    st.markdown(f"**NUTS3 kód vybraného okres:** `{nuts_kod}`")
+# --- Přejít na detail obce po kliknutí ---
+if clicked and clicked.get("last_active_drawing"):
+    props = clicked["last_active_drawing"]["properties"]
+    st.session_state["obec_kod"] = props["KOD"]
+    st.session_state["obec_nazev"] = props["NAZEV"]
+    st.switch_page("pages/obec_detail.py")
+
+# --- Tlačítko zpět ---
+if st.button("⬅️ Zpět na okresy"):
+    del st.session_state["okres_kod"]
+    del st.session_state["okres_nazev"]
+    st.switch_page("pages/okresy.py")
+
