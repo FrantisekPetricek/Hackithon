@@ -1,7 +1,7 @@
 [tool.pyright]
-include = ["flask-app"]
+include = ["app", "data"]
 executionEnvironments = [
-    {root = "flask-app"}
+    {root = "./", pythonPath = "./venv/bin/python"}
 ]
 venvPath = "./"
 venv = "venv"

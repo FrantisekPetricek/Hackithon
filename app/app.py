@@ -9,6 +9,7 @@ import folium
 st.set_page_config(layout="wide")
 st.title("Kraje České republiky")
 
+
 # Načtení dat z DB
 @st.cache_data
 def load_kraje_from_db():

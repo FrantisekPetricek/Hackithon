@@ -81,7 +81,13 @@ folium.GeoJson(
 ).add_to(m)
 
 st.subheader(f"Okresy v kraji: {kraj_nazev}")
-st_folium(m, width=1400, height=1000)
+clicked = st_folium(m, width=1400, height=1000)
+
+if clicked and clicked.get("last_active_drawing"):
+    props = clicked["last_active_drawing"]["properties"]
+    st.session_state["nuts3_kod"] = props["NUTS3_KOD"]
+    st.session_state["kraj_nazev"] = props["NAZEV"]
+    st.switch_page("pages/okresy.py")
 
 # Tlačítko zpět
 if st.button("⬅️ Zpět na kraje"):
