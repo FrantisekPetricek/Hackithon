@@ -93,7 +93,7 @@ if clicked and clicked.get("last_active_drawing"):
     props = clicked["last_active_drawing"]["properties"]
     st.session_state["okres_kod"] = props["KOD"]
     st.session_state["okres_nazev"] = props["NAZEV"]
-    st.switch_page("pages/app3.py")
+    st.switch_page("pages/obce.py")
 # Tlačítko zpět
 if st.button("⬅️ Zpět na kraje"):
     del st.session_state["nuts3_kod"]
