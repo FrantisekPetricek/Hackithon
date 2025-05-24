@@ -1,0 +1,1 @@
+# Pro každé vkládání dat do databáze použij tento příkaz v bash: docker compose exec streamlit python "nazev_souboru".py (import_geujson, import_obce,...)
